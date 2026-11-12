@@ -1,0 +1,13 @@
+# Worker do OpenReply no Railway (Azimute, 12-11-2026). O Dockerfile principal
+# constrói a app web; o worker só precisa das dependências e do cliente Prisma.
+FROM node:20-slim
+WORKDIR /app
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates wget && rm -rf /var/lib/apt/lists/*
+COPY package.json package-lock.json ./
+RUN npm ci
+COPY . .
+RUN npm run db:generate
+ENV NODE_ENV=production
+# O worker corre também o agendador das tarefas /api/cron (scripts/cron.sh),
+# que no Vercel vinham do vercel.json. Sem ele o token do Instagram expira.
+CMD ["sh", "-c", "sh scripts/cron.sh & exec npm run worker"]
